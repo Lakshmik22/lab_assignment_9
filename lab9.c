@@ -1,23 +1,24 @@
 #include <stdio.h>
-
+#include <stdlib.h>
+#include <stdlib.h>
 // RecordType
 struct RecordType
 {
-	int		id;
-	char	name;
-	int		order; 
+	int id;
+	char name;
+	int order; 
 };
 
 // Fill out this structure
 struct HashType
 {
-
+	struct RecordType* record;
 };
 
 // Compute the hash function
 int hash(int x)
 {
-
+	return x % HASH_SIZE; 
 }
 
 // parses input file to an integer array
@@ -56,6 +57,23 @@ int parseData(char* inputFileName, struct RecordType** ppData)
 
 	return dataSz;
 }
+// Your hash implementation
+#define HASH_SIZE 100 // Choose an appropriate size for the hash table
+
+void insertRecordIntoHash(struct HashType* hashTable, int hashSize, struct RecordType record)
+{
+    int index = hash(record.id);
+
+    // Separate Chaining - Handle collisions by using linked lists at each index
+    struct RecordType* newRecord = (struct RecordType*)malloc(sizeof(struct RecordType));
+    if (newRecord == NULL)
+    {
+        printf("Cannot allocate memory for the new record\n");
+        exit(-1);
+    }
+    *newRecord = record;
+    hashTable[index].record = newRecord;
+}
 
 // prints the records
 void printRecords(struct RecordType pData[], int dataSz)
@@ -76,19 +94,61 @@ void printRecords(struct RecordType pData[], int dataSz)
 void displayRecordsInHash(struct HashType *pHashArray, int hashSz)
 {
 	int i;
-
 	for (i=0;i<hashSz;++i)
 	{
-		// if index is occupied with any records, print all
+		 if (pHashArray[i].record != NULL){
+            printf("index %d -> %d, %c, %d\n", i, pHashArray[i].record->id, pHashArray[i].record->name, pHashArray[i].record->order);
+        }
 	}
 }
 
 int main(void)
 {
-	struct RecordType *pRecords;
-	int recordSz = 0;
+    struct RecordType* pRecords;
+    int recordSz = 0;
+    int i;
 
-	recordSz = parseData("input.txt", &pRecords);
-	printRecords(pRecords, recordSz);
-	// Your hash implementation
+    recordSz = parseData("input.txt", &pRecords);
+    printRecords(pRecords, recordSz);
+
+    // Your hash implementation
+    struct HashType* pHashTable = (struct HashType*)malloc(sizeof(struct HashType) * HASH_SIZE);
+    if (pHashTable == NULL)
+    {
+        printf("Cannot allocate memory for the hash table\n");
+        exit(-1);
+    }
+
+    // Initialize the hash table
+    for (i = 0; i < HASH_SIZE; ++i)
+    {
+        pHashTable[i].record = NULL;
+    }
+
+    // Insert records into the hash table
+    for (i = 0; i < recordSz; ++i)
+    {
+        insertRecordIntoHash(pHashTable, HASH_SIZE, pRecords[i]);
+    }
+
+    // Display records in the hash table
+    displayRecordsInHash(pHashTable, HASH_SIZE);
+
+    // Free allocated memory
+    for (i = 0; i < recordSz; ++i)
+    {
+        free(pRecords[i]);
+    }
+    free(pRecords);
+
+    for (i = 0; i < HASH_SIZE; ++i)
+    {
+        if (pHashTable[i].record != NULL)
+        {
+            free(pHashTable[i].record);
+        }
+    }
+    free(pHashTable);
+
+    return 0;
 }
