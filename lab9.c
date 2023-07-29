@@ -1,24 +1,33 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#define HASHSIZE 50
+
 // RecordType
 struct RecordType
 {
-	int id;
-	char name;
-	int order; 
+	int		id;
+	char	name;
+	int		order; 
+};
+
+// Node for linked list
+struct Node
+{
+    struct RecordType data;
+    struct Node *next;
 };
 
 // Fill out this structure
 struct HashType
 {
-	struct RecordType* record;
+  struct Node *head;
 };
 
 // Compute the hash function
 int hash(int x)
 {
-	return x % HASH_SIZE; 
+  return x % HASHSIZE;
 }
 
 // parses input file to an integer array
@@ -57,23 +66,6 @@ int parseData(char* inputFileName, struct RecordType** ppData)
 
 	return dataSz;
 }
-// Your hash implementation
-#define HASH_SIZE 100 // Choose an appropriate size for the hash table
-
-void insertRecordIntoHash(struct HashType* hashTable, int hashSize, struct RecordType record)
-{
-    int index = hash(record.id);
-
-    // Separate Chaining - Handle collisions by using linked lists at each index
-    struct RecordType* newRecord = (struct RecordType*)malloc(sizeof(struct RecordType));
-    if (newRecord == NULL)
-    {
-        printf("Cannot allocate memory for the new record\n");
-        exit(-1);
-    }
-    *newRecord = record;
-    hashTable[index].record = newRecord;
-}
 
 // prints the records
 void printRecords(struct RecordType pData[], int dataSz)
@@ -87,6 +79,34 @@ void printRecords(struct RecordType pData[], int dataSz)
 	printf("\n\n");
 }
 
+// insert record into the hash table
+void insertRecord(struct HashType hashTable[], struct RecordType record)
+{
+    // Compute the hash value
+    int index = hash(record.id);
+
+    // Create a new node
+    struct Node *newNode = (struct Node*) malloc(sizeof(struct Node));
+    newNode->data = record;
+    newNode->next = NULL;
+
+    // If the index is empty, insert the new node
+    if (hashTable[index].head == NULL)
+    {
+        hashTable[index].head = newNode;
+    }
+    // If the index is not empty, add the new node to the end of the linked list
+    else
+    {
+        struct Node *cur = hashTable[index].head;
+        while (cur->next != NULL)
+        {
+            cur = cur->next;
+        }
+        cur->next = newNode;
+    }
+}
+
 // display records in the hash structure
 // skip the indices which are free
 // the output will be in the format:
@@ -94,61 +114,44 @@ void printRecords(struct RecordType pData[], int dataSz)
 void displayRecordsInHash(struct HashType *pHashArray, int hashSz)
 {
 	int i;
+
 	for (i=0;i<hashSz;++i)
 	{
-		 if (pHashArray[i].record != NULL){
-            printf("index %d -> %d, %c, %d\n", i, pHashArray[i].record->id, pHashArray[i].record->name, pHashArray[i].record->order);
+		// if index is occupied with any records, print all
+		     printf("Index %d -> ", i);
+        struct Node *cur = pHashArray[i].head;
+        while (cur != NULL)
+        {
+            printf("%d %c %d -> ", cur->data.id, cur->data.name, cur->data.order);
+            cur = cur->next;
         }
+        printf("\n");
 	}
 }
 
 int main(void)
 {
-    struct RecordType* pRecords;
-    int recordSz = 0;
-    int i;
+	struct RecordType *pRecords;
+	int recordSz = 0;
 
-    recordSz = parseData("input.txt", &pRecords);
-    printRecords(pRecords, recordSz);
+	recordSz = parseData("input.txt", &pRecords);
+	printRecords(pRecords, recordSz);
+	// Your hash implementation
+	 struct HashType* hashTable = (struct HashType*) malloc(sizeof(struct HashType) * HASHSIZE);
 
-    // Your hash implementation
-    struct HashType* pHashTable = (struct HashType*)malloc(sizeof(struct HashType) * HASH_SIZE);
-    if (pHashTable == NULL)
-    {
-        printf("Cannot allocate memory for the hash table\n");
-        exit(-1);
+    for (int i = 0; i < HASHSIZE; i++)
+	{
+        hashTable[i].head = NULL;
     }
 
-    // Initialize the hash table
-    for (i = 0; i < HASH_SIZE; ++i)
-    {
-        pHashTable[i].record = NULL;
+    // insert record to hash table
+    for (int i = 0; i < recordSz; i++) {
+        insertRecord(hashTable,pRecords[i]);
     }
+    // display thr contents of table
+    displayRecordsInHash(hashTable, HASHSIZE);
 
-    // Insert records into the hash table
-    for (i = 0; i < recordSz; ++i)
-    {
-        insertRecordIntoHash(pHashTable, HASH_SIZE, pRecords[i]);
-    }
-
-    // Display records in the hash table
-    displayRecordsInHash(pHashTable, HASH_SIZE);
-
-    // Free allocated memory
-    for (i = 0; i < recordSz; ++i)
-    {
-        free(pRecords[i]);
-    }
     free(pRecords);
-
-    for (i = 0; i < HASH_SIZE; ++i)
-    {
-        if (pHashTable[i].record != NULL)
-        {
-            free(pHashTable[i].record);
-        }
-    }
-    free(pHashTable);
-
-    return 0;
+    
+    return (0);
 }
